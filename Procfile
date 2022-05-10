@@ -1,1 +1,1 @@
-worker: python movie_bot.py
+worker: python3 movie_bot.py
