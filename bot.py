@@ -7,9 +7,9 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-MONGO = os.getenv("MONGO_URL")
+MONGO_PW = os.getenv("MONGO_PW")
 
-client = MongoClient(MONGO)
+client = MongoClient(f"mongodb+srv://dipchest:{MONGO_PW}@greg.hrim0.mongodb.net/Greg?retryWrites=true&w=majority")
 db = client.movies
 
 intents = discord.Intents.default()
