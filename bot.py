@@ -1,5 +1,6 @@
 import discord
 from discord.ext import commands
+from discord_components import Button, Select, SelectOption, ComponentsBot
 from search import get_search_results
 from pymongo import MongoClient
 import os
@@ -9,12 +10,17 @@ load_dotenv()
 
 MONGO_PW = os.getenv("MONGO_PW")
 
-client = MongoClient(f"mongodb+srv://dipchest:{MONGO_PW}@greg.hrim0.mongodb.net/Greg?retryWrites=true&w=majority")
+client = MongoClient("localhost")
 db = client.movies
 
 intents = discord.Intents.default()
 intents.members = True
-bot = commands.Bot(command_prefix='$', intents=intents)
+# bot = commands.Bot(command_prefix='$', intents=intents)
+cmd = '$'
+if MONGO_PW == 'testing':
+    cmd = '*'
+
+bot = ComponentsBot(cmd)
 
 results = []
 
@@ -75,12 +81,58 @@ async def on_clear(ctx):
 
 @bot.command(name='reset')
 async def on_reset_command(ctx, *args):
-    """Prompt to either destroy the movie list or clear the votes or not do anything"""
+    """Prompt to either destroy the movie list or clear the vote counts"""
     msg = await ctx.send(
-        'Are you sure you want to reset the entire poll? React with 🇾 if yes, 🇳 if no, 🇻 to only clear votes')
-    await msg.add_reaction('🇾')
-    await msg.add_reaction('🇳')
-    await msg.add_reaction('🇻')
+        content='Are you sure you want to reset the entire watchlist?',
+        components=[
+            Select(
+                placeholder="Reset watchlist?",
+                options=[
+                    SelectOption(label='Yes', value='yes'),
+                    SelectOption(label='No', value='no'),
+                    SelectOption(label='Only clear vote counts', value='0'),
+                ],
+                custom_id='ResetWatchlist'
+            )
+        ],)
+    interaction = await bot.wait_for('select_option', check=lambda inter: inter.custom_id == 'ResetWatchlist' and inter.user == ctx.author)
+    res = interaction.values[0]
+
+    if res == 'yes':
+        await msg.delete()
+        db['watchlist'].delete_many({})
+        if len(listmessage) != 0:
+            await listmessage[0].delete()
+            listmessage.clear()
+        db['users'].update_many({}, {
+            '$set': {
+                'HasVoted': False,
+                'MovieChosen': ''
+            }
+        })
+    elif res == 'no':
+        await msg.delete()
+    elif res == '0':
+        await msg.delete()
+        condition = {
+            '$set': {
+                'Votes': 0
+            }
+        }
+        db['watchlist'].update_many({}, condition)
+        movie_string = await _create_list_message()
+        movie_msg = await ctx.send(movie_string)
+        listmessage.append(movie_msg)
+        for i in vote_emojis:
+            if vote_emojis.index(i) >= db['watchlist'].count_documents(filter={}):
+                break
+            await movie_msg.add_reaction(i)
+        db['users'].update_many({}, {
+            '$set': {
+                'HasVoted': False,
+                'MovieChosen': ''
+            }
+        })
 
 
 @bot.event
@@ -124,43 +176,6 @@ async def on_reaction_add(reaction, user):
             movie_string += f"{counter}. {item['Title']} | **Votes: [{item['Votes']}]**\n"
             counter += 1
         await reaction.message.edit(content=movie_string)
-
-
-    elif reaction.count >= 2 and reaction.emoji == '🇳':
-        await reaction.message.delete()
-    elif reaction.count >= 2 and reaction.emoji == '🇾':
-        await reaction.message.delete()
-        db['watchlist'].delete_many({})
-        if len(listmessage) != 0:
-            await listmessage[0].delete()
-            listmessage.clear()
-        db['users'].update_many({}, {
-            '$set': {
-                'HasVoted': False,
-                'MovieChosen': ''
-            }
-        })
-    elif reaction.count >= 2 and reaction.emoji == '🇻':
-        condition = {
-            '$set': {
-                'Votes': 0
-            }
-        }
-        db['watchlist'].update_many({}, condition)
-        movie_string = await _create_list_message()
-        msg = await reaction.message.channel.send(movie_string)
-        listmessage.append(msg)
-        for i in vote_emojis:
-            if vote_emojis.index(i) >= db['watchlist'].count_documents(filter={}):
-                break
-            await msg.add_reaction(i)
-        await reaction.message.delete()
-        db['users'].update_many({}, {
-            '$set': {
-                'HasVoted': False,
-                'MovieChosen': ''
-            }
-        })
 
 
 @bot.event
