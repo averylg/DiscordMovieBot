@@ -39,6 +39,7 @@ async def vent(ctx, *args):
 
 @bot.command(name='search')
 async def search_movies(ctx, *args):
+    """$search <name of movie>"""
     results.clear()
     if ctx.channel.name == 'movie-search':
         if len(args) == 0:
@@ -66,6 +67,7 @@ async def search_movies(ctx, *args):
 
 @bot.command(name='clear')
 async def on_clear(ctx):
+    """Clears the search results"""
     for result in results:
         await result.delete()
     results.clear()
@@ -73,6 +75,7 @@ async def on_clear(ctx):
 
 @bot.command(name='reset')
 async def on_reset_command(ctx, *args):
+    """Prompt to either destroy the movie list or clear the votes or not do anything"""
     msg = await ctx.send(
         'Are you sure you want to reset the entire poll? React with 🇾 if yes, 🇳 if no, 🇻 to only clear votes')
     await msg.add_reaction('🇾')
@@ -185,6 +188,7 @@ async def on_reaction_remove(reaction, user):
 
 @bot.command(name='delete')
 async def delete_movie(ctx, *args):
+    """$delete <index in watchlist>"""
     if len(args) == 0:
         await ctx.send("Format this command as follows: $delete [index of movie in list]")
     else:
@@ -203,6 +207,7 @@ async def delete_movie(ctx, *args):
 
 @bot.command(name='list')
 async def list_movies(ctx):
+    """Lists movies in watchlist"""
     if ctx.channel.name == 'watchlist':
         if db['watchlist'].count_documents(filter={}) == 0:
             await ctx.send("`The current watchlist is empty.`")
