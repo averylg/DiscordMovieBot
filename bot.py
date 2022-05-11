@@ -143,7 +143,8 @@ async def on_reaction_add(reaction, user):
         if db.watchlist.find_one({'Title': reaction.message.content}) is None:
             result = db.watchlist.insert_one({
                 'Title': reaction.message.content,
-                'Votes': 0
+                'Votes': 0,
+                'Voters': []
             })
 
         else:
@@ -257,13 +258,44 @@ async def watchlist(ctx):
         filter1 = {
             '_id': ObjectId(res)
         }
-        votes = {
-            '$inc': {
-                'Votes': 1
+        if ctx.author.id in db.watchlist.find_one(filter1)['Voters']:
+            await msg.delete()
+            response = discord.Embed(color=discord.Color.from_rgb(0x2d, 0xe2, 0x6b))
+            response.description = "You have already voted for this. Would you like to undo your vote?"
+            msg2 = await ctx.send(
+                embed=response,
+                components=[
+                    Button(label="Yes", style=3, custom_id="RemoveYes"),
+                    Button(label="No", style=4, custom_id="RemoveNo")
+                ]
+            )
+            interaction2 = await bot.wait_for('button_click', check=lambda i: i.custom_id.startswith("Remove") and i.user == ctx.author)
+            if interaction2.custom_id == 'RemoveYes':
+                votes = {
+                    '$inc': {
+                        'Votes': -1
+                    },
+                    '$pull': {
+                        'Voters': ctx.author.id
+                    }
+                }
+                db.watchlist.update_one(filter1, votes)
+                await msg2.delete()
+                await watchlist(ctx)
+            elif interaction2.custom_id == 'RemoveNo':
+                await msg2.delete()
+                await watchlist(ctx)
+        else:
+            votes = {
+                '$inc': {
+                    'Votes': 1
+                },
+                '$push': {
+                    'Voters': ctx.author.id
+                }
             }
-        }
-        db.watchlist.update_one(filter1, votes)
-        await msg.delete()
+            db.watchlist.update_one(filter1, votes)
+            await msg.delete()
 
 
 async def _create_list_message():
