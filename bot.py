@@ -205,6 +205,8 @@ async def delete_movie(ctx, *args):
 @bot.command(name='list')
 async def list_movies(ctx):
     if ctx.channel.name == 'watchlist':
+        if db['watchlist'].find({}) is None:
+            await ctx.send("`The current watchlist is empty.`")
         movie_string = await _create_list_message()
         msg = await ctx.send(movie_string)
         listmessage.append(msg)
