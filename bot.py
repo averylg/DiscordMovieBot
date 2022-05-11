@@ -55,8 +55,7 @@ async def search_movies(ctx, *args):
                         e = discord.Embed()
                         e.set_image(url=movie["Poster"])
                         result = await ctx.send(
-                            "{title} - {type} ({year})".format(title=movie["Title"], type=movie["Type"].capitalize(),
-                                                               year=year), embed=e)
+                            f"{movie['Title']} - {movie['Type']} ({year})", embed=e)
 
                         # await ctx.send(embed=e)
                         await result.add_reaction('⬆')
