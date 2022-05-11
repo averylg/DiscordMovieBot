@@ -206,6 +206,7 @@ async def list_movies(ctx):
     if ctx.channel.name == 'watchlist':
         if db['watchlist'].count_documents(filter={}) == 0:
             await ctx.send("`The current watchlist is empty.`")
+            return
         movie_string = await _create_list_message()
         msg = await ctx.send(movie_string)
         listmessage.append(msg)
