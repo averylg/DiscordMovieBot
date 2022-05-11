@@ -9,7 +9,7 @@ load_dotenv()
 TOKEN = os.getenv("BOT_TOKEN")
 MONGO_PW = os.getenv("MONGO_PW")
 
-client = MongoClient(f"mongodb+srv://dipchest:{MONGO_PW}@greg.hrim0.mongodb.net/Greg?retryWrites=true&w=majority", 27027)
+client = MongoClient(f"mongodb+srv://dipchest:{MONGO_PW}@greg.hrim0.mongodb.net/Greg?retryWrites=true&w=majority")
 db = client.movies
 
 print(client.list_database_names())
