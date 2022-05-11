@@ -1,10 +1,10 @@
 import discord
-from discord.ext import commands
 from discord_components import Button, Select, SelectOption, ComponentsBot
 from search import get_search_results
 from pymongo import MongoClient
 import os
 from dotenv import load_dotenv
+from bson import ObjectId
 
 load_dotenv()
 
@@ -79,6 +79,8 @@ async def on_clear(ctx):
     results.clear()
 
 
+
+
 @bot.command(name='reset')
 async def on_reset_command(ctx, *args):
     """Prompt to either destroy the movie list or clear the vote counts"""
@@ -146,7 +148,7 @@ async def on_reaction_add(reaction, user):
 
         else:
             reaction.message.channel.send("Movie already in database, movie board not changed.")
-        if (len(results) != 0):
+        if len(results) != 0:
             for result in results:
                 await result.delete()
         results.clear()
@@ -220,33 +222,59 @@ async def delete_movie(ctx, *args):
             await msg.add_reaction(i)
 
 
-@bot.command(name='list')
-async def list_movies(ctx):
-    """Lists movies in watchlist"""
-    if ctx.channel.name == 'watchlist':
-        if db['watchlist'].count_documents(filter={}) == 0:
-            await ctx.send("`The current watchlist is empty.`")
-            return
-        movie_string = await _create_list_message()
-        msg = await ctx.send(movie_string)
-        listmessage.append(msg)
-        for i in vote_emojis:
-            if vote_emojis.index(i) >= db['watchlist'].count_documents(filter={}):
-                break
-            await msg.add_reaction(i)
+@bot.command(name='list', aliases=['watchlist', 'movielist', 'listmovies'])
+async def watchlist(ctx):
+    """Shows the user the list of movies and their vote counts"""
+    e = discord.Embed(color=discord.Color.from_rgb(0x2d, 0xe2, 0x6b))
+    e.title = "**Movie Watchlist**"
+    movie_str = ''
+    counter = 1
+    options = []
+    for item in db['watchlist'].find().sort('Votes', -1):
+        movie_str += f"{counter}. {item['Title']} | Votes: [{item['Votes']}]\n"
+        options.append(SelectOption(label=f"{counter}. {item['Title']}", value=str(item['_id'])))
+        counter += 1
+    options.append(SelectOption(label='❌ Cancel', value='Cancel'))
+    e.description = movie_str
+    msg = await ctx.send(
+        embed=e,
+        components=[
+            Select(
+                placeholder='Vote for something to watch!',
+                options=options,
+                custom_id='MovieVote'
+            )
+        ]
+    )
+    interaction = await bot.wait_for(
+        'select_option',
+        check=lambda inter: inter.custom_id == 'MovieVote' and inter.user == ctx.author
+    )
+    res = interaction.values[0]
+    if res == 'Cancel':
+        await msg.delete()
     else:
-        await ctx.send("This command can only be sent in the `watchlist` channel")
+        filter1 = {
+            '_id': ObjectId(res)
+        }
+        votes = {
+            '$inc': {
+                'Votes': 1
+            }
+        }
+        db.watchlist.update_one(filter1, votes)
+        await msg.delete()
 
 
 async def _create_list_message():
     if len(listmessage) != 0:
         await listmessage[0].delete()
         listmessage.clear()
-    movie_string = "**==MOVIE POLL==**\n**===========================**\n"
+    movie_string = "```\n==MOVIE POLL==\n===========================\n"
     counter = 1
     for item in db['watchlist'].find({}):
-        movie_string += f"{counter}. {item['Title']} | **Votes: [{item['Votes']}]**\n"
+        movie_string += f"{counter}. {item['Title']} | Votes: [{item['Votes']}]\n"
         counter += 1
-    return movie_string
+    return movie_string + "```"
 
 
