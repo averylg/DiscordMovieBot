@@ -161,6 +161,7 @@ async def search_movies(ctx, *args):
                                     ),
                                     delete_after=10
                                 )
+                                await response2.delete()
                             b = False
 
                         elif interaction2.custom_id == 'ChooseNope':
