@@ -360,12 +360,16 @@ async def watchlist(ctx):
     while c:
         interaction = await bot.wait_for(
             'select_option',
-            check=lambda inter: (inter.custom_id == 'MovieVote' or inter.custom_id == 'ExitList') and inter.user == ctx.author
+            check=lambda inter: inter.custom_id == 'MovieVote' and inter.user == ctx.author
         )
-        if interaction.custom_id == 'MovieVote':
+        button_click = await bot.wait_for(
+            'button_click',
+            check=lambda inter: inter.custom_id == 'ExitList' and inter.user == ctx.author
+        )
+        if button_click.custom_id == 'ExitList':
             await msg.delete()
             c = False
-        else:
+        elif interaction.custom_id == 'MovieVote':
             res = interaction.values[0]
             c = False
             filter1 = {
