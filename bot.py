@@ -142,7 +142,7 @@ async def search_movies(ctx, *args):
                     while b:
                         interaction2 = await bot.wait_for(
                             'button_click',
-                            check=lambda i: i.custom_id.startswith("Choose") and i.user == ctx.author
+                            check=lambda i: i.custom_id.startswith("Choose") # and i.user == ctx.author
                         )
                         if interaction2.user != ctx.author:
                             await ctx.send(f"Oi bud only {ctx.author} can click this right now here bud!")
