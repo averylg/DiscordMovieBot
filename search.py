@@ -29,3 +29,16 @@ def get_search_results(movie: str):
     except:
         return ""
 
+
+def get_movie_from_results_by_id(movie_results, imdb_id):
+    """
+    Used to get a movie by ID from a movie_results map array
+    :param movie_results:
+    :param imdb_id:
+    :return:
+    """
+    for movie in movie_results:
+        if movie["imdbID"] == imdb_id:
+            print(movie)
+            return movie
+    return False

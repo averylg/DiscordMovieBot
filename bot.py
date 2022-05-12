@@ -1,6 +1,6 @@
 import discord
 from discord_components import Button, Select, SelectOption, ComponentsBot
-from search import get_search_results
+from search import get_search_results, get_movie_from_results_by_id
 from pymongo import MongoClient
 import os
 from dotenv import load_dotenv
@@ -50,28 +50,127 @@ async def vent(ctx, *args):
 
 @bot.command(name='search')
 async def search_movies(ctx, *args):
-    """$search <name of movie>"""
+    """$search <name of movie or series>"""
     results.clear()
     if ctx.channel.name == 'movie-search':
         if len(args) == 0:
             await ctx.send("Format: `$search <movie or series being searched for>`")
         else:
-            if get_search_results(' '.join(args)) == "":
-                await ctx.send("No results available")
+            options = []
+            movie_results = get_search_results(' '.join(args))
+            for movie in movie_results:
+                if movie["Type"] == "movie" or movie["Type"] == "series" and movie["Poster"] != "N/A":
+                    year = movie["Year"]
+                    if year.endswith("–"):
+                        year = movie["Year"] + "Present"
+                    # e = discord.Embed()
+                    # e.set_image(url=movie["Poster"])
+                    # result = await ctx.send(
+                    #     f"{movie['Title']} - {movie['Type'].capitalize()} ({year})", embed=e)
+                    counter = 1
+                    options.append(
+                        SelectOption(
+                            label=f"{movie['Title']} - {movie['Type'].capitalize()} ({year})",
+                            value=movie["imdbID"]
+                        ))
+                    counter += 1
+            if len(options) == 0:
+                response = await ctx.send(
+                    embed=discord.Embed(
+                        color=discord.Color.from_rgb(0x2d, 0xe2, 0x6b),
+                        description=f"No results for {' '.join(args)}"
+                    ),
+                    components=[
+                        Button(label="No", style=4, custom_id="CloseSearch")
+                    ]
+                )
+                x = True
+                while x:
+                    interaction = await bot.wait_for(
+                        'button_click',
+                        check=lambda i: i.custom_id == 'CloseSearch' and i.user == ctx.author
+                    )
+                    if interaction.custom_id == 'CloseSearch':
+                        response.delete()
+                        x = False
             else:
-                for movie in get_search_results(' '.join(args)):
-                    if movie["Type"] == "movie" or movie["Type"] == "series" and movie["Poster"] != "N/A":
-                        year = movie["Year"]
-                        if year.endswith("–"):
-                            year = movie["Year"] + "Present"
-                        e = discord.Embed()
-                        e.set_image(url=movie["Poster"])
-                        result = await ctx.send(
-                            f"{movie['Title']} - {movie['Type'].capitalize()} ({year})", embed=e)
+                options.append(SelectOption(label='❌ Cancel', value='cancel'))
+                print(' '.join(args))
+                response = await ctx.send(
+                    embed=discord.Embed(
+                        color=discord.Color.from_rgb(0x2d, 0xe2, 0x6b),
+                        description=f"Results for {' '.join(args)}:"
+                    ),
+                    components=[
+                        Select(
+                            placeholder=f"Results for {' '.join(args)}",
+                            options=options,
+                            custom_id='SearchResults'
+                        )
+                    ]
+                )
+                a = True
+                while a:
+                    interaction = await bot.wait_for(
+                        'select_option',
+                        check=lambda inter: inter.custom_id == 'SearchResults' and inter.user == ctx.author
+                    )
+                    imdb_id = interaction.values[0]
+                    if imdb_id == 'cancel':
+                        await response.delete()
+                        return
+                    await response.delete()
+                    movie_thing = get_movie_from_results_by_id(movie_results, imdb_id)
 
-                        # await ctx.send(embed=e)
-                        await result.add_reaction('⬆')
-                        results.append(result)
+                    year = movie_thing["Year"]
+                    if year.endswith("–"):
+                        year = movie_thing["Year"] + "Present"
+                    reee = discord.Embed(
+                        color=discord.Color.from_rgb(0x2d, 0xe2, 0x6b),
+                        title=f"{movie_thing['Title']} - {movie_thing['Type'].capitalize()} ({year})"
+
+                    )
+                    reee.set_image(url=movie_thing["Poster"])
+                    response2 = await ctx.send(
+                        embed=reee,
+                        components=[
+                            Button(label="Select", style=3, custom_id="ChooseMovie"),
+                            Button(label="Go Back", style=4, custom_id="ChooseNope")
+                        ]
+                    )
+                    b = True
+                    while b:
+                        interaction2 = await bot.wait_for(
+                            'button_click',
+                            check=lambda i: i.custom_id.startswith("Choose") and i.user == ctx.author
+                        )
+                        print(interaction2.custom_id)
+                        if interaction2.custom_id == 'ChooseMovie':
+                            if db.watchlist.find_one({'Title': reee.title}) is None:
+                                db.watchlist.insert_one({
+                                    'Title': reee.title,
+                                    'Votes': 0,
+                                    'Voters': []
+                                })
+                                await response2.delete()
+                            else:
+                                await interaction2.send(
+                                    embed=discord.Embed(
+                                        color=discord.Color.from_rgb(0x2d, 0xe2, 0x6b),
+                                        description="The item you selected is already in the watchlist."
+                                    ),
+                                    delete_after=10
+                                )
+                            b = False
+
+                        elif interaction2.custom_id == 'ChooseNope':
+                            await response2.delete()
+                            await search_movies(ctx, *args)
+                            b = False
+                        a = False
+
+
+
     else:
         await ctx.send("Command must be sent in channel `movie-search`")
 
@@ -82,8 +181,6 @@ async def on_clear(ctx):
     for result in results:
         await result.delete()
     results.clear()
-
-
 
 
 @bot.command(name='reset')
