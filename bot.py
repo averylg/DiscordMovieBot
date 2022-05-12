@@ -1,5 +1,5 @@
 import discord
-from discord_components import Button, Select, SelectOption, ComponentsBot
+from discord_components import Button, Select, SelectOption, ComponentsBot, ActionRow
 from search import get_search_results, get_movie_from_results_by_id
 from pymongo import MongoClient
 import os
@@ -134,8 +134,10 @@ async def search_movies(ctx, *args):
                     response2 = await ctx.send(
                         embed=reee,
                         components=[
-                            Button(label="Select", style=3, custom_id="ChooseMovie"),
-                            Button(label="Go Back", style=4, custom_id="ChooseNope")
+                            ActionRow(
+                                Button(label="Select", style=3, custom_id="ChooseMovie"),
+                                Button(label="Go Back", style=4, custom_id="ChooseNope")
+                            )
                         ]
                     )
                     b = True
@@ -375,8 +377,10 @@ async def watchlist(ctx):
                 msg2 = await ctx.send(
                     embed=response,
                     components=[
-                        Button(label="Yes", style=3, custom_id="RemoveYes"),
-                        Button(label="No", style=4, custom_id="RemoveNo")
+                        ActionRow(
+                            Button(label="Yes", style=3, custom_id="RemoveYes"),
+                            Button(label="No", style=4, custom_id="RemoveNo")
+                        ),
                     ]
                 )
                 d = True
