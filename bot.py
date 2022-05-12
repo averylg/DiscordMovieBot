@@ -340,6 +340,7 @@ async def watchlist(ctx):
         movie_str += f"{counter}. {item['Title']} | Votes: [{item['Votes']}]\n"
         options.append(SelectOption(label=f"{counter}. {item['Title']}", value=str(item['_id'])))
         counter += 1
+    options.insert(0, SelectOption(label='❌ Exit', value='Cancel'))
     e.description = movie_str
     msg = await ctx.send(
         embed=e,
@@ -349,11 +350,6 @@ async def watchlist(ctx):
                 options=options,
                 custom_id='MovieVote'
             ),
-            Button(
-                label="Exit",
-                style=4,
-                custom_id="ExitList"
-            )
         ]
     )
     c = True
@@ -362,15 +358,11 @@ async def watchlist(ctx):
             'select_option',
             check=lambda inter: inter.custom_id == 'MovieVote' and inter.user == ctx.author
         )
-        button_click = await bot.wait_for(
-            'button_click',
-            check=lambda inter: inter.custom_id == 'ExitList' and inter.user == ctx.author
-        )
-        if button_click.custom_id == 'ExitList':
+        res = interaction.values[0]
+        if res == 'Cancel':
             await msg.delete()
             c = False
-        elif interaction.custom_id == 'MovieVote':
-            res = interaction.values[0]
+        else:
             c = False
             filter1 = {
                 '_id': ObjectId(res)
