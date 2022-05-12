@@ -144,6 +144,8 @@ async def search_movies(ctx, *args):
                             'button_click',
                             check=lambda i: i.custom_id.startswith("Choose") and i.user == ctx.author
                         )
+                        if interaction2.user != ctx.author:
+                            await ctx.send(f"Oi bud only {ctx.author} can click this right now here bud!")
                         print(interaction2.custom_id)
                         if interaction2.custom_id == 'ChooseMovie':
                             if db.watchlist.find_one({'Title': reee.title}) is None:
