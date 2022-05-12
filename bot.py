@@ -409,6 +409,7 @@ async def watchlist(ctx):
                 }
                 db.watchlist.update_one(filter1, votes)
                 await msg.delete()
+                await watchlist(ctx)
 
 
 async def _create_list_message():
