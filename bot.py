@@ -68,12 +68,20 @@ async def search_movies(ctx, *args):
                     # result = await ctx.send(
                     #     f"{movie['Title']} - {movie['Type'].capitalize()} ({year})", embed=e)
                     counter = 1
-                    options.append(
-                        SelectOption(
-                            label=f"{movie['Title']} - {movie['Type'].capitalize()} ({year})",
-                            value=movie["imdbID"]
-                        ))
-                    counter += 1
+                    option = SelectOption(
+                        label=f"{movie['Title']} - {movie['Type'].capitalize()} ({year})",
+                        value=movie["imdbID"]
+                    )
+                    duplicate = False
+                    for thing in options:
+                        if option.value == thing.value:
+                            duplicate = True
+                    if not duplicate:
+                        print(f"{movie['Title']} - {movie['Type'].capitalize()} ({year})")
+                        options.append(option)
+                        counter += 1
+                    else:
+                        print("REEEEEEEEEEE")
             if len(options) == 0:
                 response = await ctx.send(
                     embed=discord.Embed(

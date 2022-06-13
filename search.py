@@ -25,7 +25,16 @@ def get_search_results(movie: str):
 
     try:
         result = requests.get('http://www.omdbapi.com/?s=' + movie + '&apikey=' + os.getenv("API_KEY"))
-        return json.loads(result.text)["Search"]
+        results = json.loads(result.text)["Search"]
+        for thing in results:
+            year = thing["Year"]
+            if year.endswith("–"):
+                year = thing["Year"] + "Present"
+            print(thing["Title"] + " - " + thing["Type"].capitalize() + " (" + year + ")")
+
+        # print(json.loads(result.text)["Search"])
+
+        return results
     except:
         return ""
 
